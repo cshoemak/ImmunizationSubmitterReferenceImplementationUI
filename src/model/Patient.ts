@@ -9,10 +9,8 @@ export interface Patient {
     motherMaidenNameLast: string;
     dateOfBirth: string;
     sex: string;
-    raceCode: string;
-    raceDescription: string;
-    ethnicityCode: string;
-    ethnicityDescription: string;
+    race: string;
+    ethnicity: string;
     phoneAreaCode: string;
     phoneNumber: string;
     addressLine1: string;

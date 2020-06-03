@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Row, Col, Button } from "reactstrap";
 import { ManagedStateComponentProps, SaveModel, DeleteModel } from "../util/StateManagement";
 import { RouteComponentProps, Redirect } from "react-router";
-import { ItemValueExtractor, ItemListProps, ItemList, EXTRACT_PATIENT, EXTRACT_CONNECTION, EXTRACT_TEST_RESULT } from "./ItemList";
+import { ItemListProps, ItemList } from "./ItemList";
 import { Patient } from "../model/Patient";
 import { PatientForm } from "./PatientForm";
 import { Connection } from "../model/Connection";
@@ -10,6 +10,7 @@ import { ConnectionForm } from "./ConnectionForm";
 import { DeleteModal } from "./DeleteModal";
 import { TestResult } from "../model/TestResult";
 import { TestResultForm } from "./TestResultForm";
+import { DisplayValueExtractor, DisplayValueExtractorType } from "../util/ValueExtractor";
 
 interface FormContainerProps<T> {
 
@@ -21,7 +22,7 @@ interface FormContainerProps<T> {
     models: Partial<T>[],
     rootPath: string,
     saveModel: SaveModel<T>,
-    valueExtractor: ItemValueExtractor<T>
+    displayValueExtractor: DisplayValueExtractorType<Partial<T>>
 }
 
 type FormComponent<T> = React.ComponentType<ManagedStateComponentProps<T>>;
@@ -35,13 +36,13 @@ const extractActiveIndex = (routeProps: RouteProps) => Number(routeProps.match.p
 
 const FormContainer = <T, >(props: FormContainerProps<T>): JSX.Element => {
 
-    const { deleteModel, FormComponent, heading, activeIndex, itemName, models, rootPath, saveModel, valueExtractor }
+    const { deleteModel, FormComponent, heading, activeIndex, itemName, models, rootPath, saveModel, displayValueExtractor }
         = props;
 
     const model = activeIndex === models.length ? {} : models[activeIndex];
 
     const formProps: ManagedStateComponentProps<T> = { index: activeIndex, model, saveModel };
-    const listProps: ItemListProps<T> = { activeIndex: activeIndex, valueExtractor: valueExtractor, heading, itemName,
+    const listProps: ItemListProps<T> = { activeIndex: activeIndex, displayValueExtractor: displayValueExtractor, heading, itemName,
          models, rootPath };
 
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -52,7 +53,7 @@ const FormContainer = <T, >(props: FormContainerProps<T>): JSX.Element => {
         return ( <Redirect to={ `${rootPath}/${models.length}` } /> );
     }
 
-    const itemDisplay = valueExtractor(model, activeIndex);
+    const itemDisplay = displayValueExtractor(model, activeIndex);
     const deleteEnabled = activeIndex != models.length;
 
     return (
@@ -90,7 +91,7 @@ export const createConectionFormRenderer: FormRendererGenerator<Connection> =
         itemName: "Connection",
         models: connections,
         saveModel: saveConnection,
-        valueExtractor: EXTRACT_CONNECTION,
+        displayValueExtractor: DisplayValueExtractor.CONNECTION,
     }
 
     return (routeProps) => ( < FormContainer {...containerProps} activeIndex={extractActiveIndex(routeProps)} 
@@ -108,7 +109,7 @@ export const createPatientFormRenderer: FormRendererGenerator<Patient> =
         itemName: "Patient",
         models: patients,
         saveModel: savePatient,
-        valueExtractor: EXTRACT_PATIENT,
+        displayValueExtractor: DisplayValueExtractor.PATIENT,
     }
 
     return (routeProps) => ( < FormContainer {...containerProps} activeIndex={extractActiveIndex(routeProps)} 
@@ -126,7 +127,7 @@ export const createTestResultFormRenderer: FormRendererGenerator<TestResult> =
         itemName: "Result",
         models: testResults,
         saveModel: saveTestResult,
-        valueExtractor: EXTRACT_TEST_RESULT,
+        displayValueExtractor: DisplayValueExtractor.TEST_RESULT,
     }
 
     return (routeProps) => ( < FormContainer {...containerProps} activeIndex={extractActiveIndex(routeProps)} 

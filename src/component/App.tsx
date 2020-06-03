@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Switch, Route} from "react-router-dom";
 import { useManagedState } from "../util/StateManagement";
 import { TopNav } from "./TopNav";
 import { createPatientFormRenderer, createConectionFormRenderer, createTestResultFormRenderer } from "./FormContainer";
+import { MessageForm } from "./MessageForm";
 
 export const App = (): JSX.Element => {
 
@@ -22,6 +23,9 @@ export const App = (): JSX.Element => {
                     <Route path="/connections/:index?" render={ createConectionFormRenderer(state.connections, saveConnection, deleteConnection) } />
                     <Route path="/patients/:index?" render={ createPatientFormRenderer(state.patients, savePatient, deletePatient) } />
                     <Route path="/test-results/:index?" render={ createTestResultFormRenderer(state.testResults, saveTestResult, deleteTestResult) } />
+                    <Route path="/send-message">
+                        <MessageForm connections={state.connections} patients={state.patients} testResults={state.testResults} />
+                    </Route>
                 </Switch>
             </Container>
         </Router>

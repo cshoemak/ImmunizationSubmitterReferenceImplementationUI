@@ -55,7 +55,11 @@ export const useManagedState = (): ManagedState => {
 
     const [state, setState] = useState<State>(loadState());
 
-    const persistState = (newState: State) => { window.localStorage.setItem(CONFIG.stateLocalStorageKey, JSON.stringify(newState)); console.log("State persisted", newState)};
+    const persistState = (newState: State) => { 
+    
+        window.localStorage.setItem(CONFIG.stateLocalStorageKey, JSON.stringify(newState));
+    };
+
     const debouncedPeristState = useCallback(debounce(persistState, 500), [])
 
     const saveState = (newState: State) => {

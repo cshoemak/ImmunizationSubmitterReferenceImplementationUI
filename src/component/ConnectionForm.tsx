@@ -18,7 +18,7 @@ export const ConnectionForm = (props: ManagedStateComponentProps<Connection>): J
 
     return (
     
-        <div className="form-component">
+        <div>
             <Form>
                 <Row form>
                     <TextInput {...staticInputProps} id="friendlyName" label="Friendly Name" />
