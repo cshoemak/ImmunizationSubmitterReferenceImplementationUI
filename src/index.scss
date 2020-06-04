@@ -5,7 +5,7 @@ div.top-nav {
     margin-bottom: 20px;
 }
 
-span.generating-message {
+span.spinner-message {
 
     margin-right: 10px;
 }
@@ -15,9 +15,25 @@ div.hl7-request-buttons {
     margin-top: 10px;
 }
 
-.hl7-request-buttons button {
+button {
 
     margin-left: 2px;
     margin-right: 2px;
 }
 
+.rounded-form {
+
+    padding: 15px;
+    border-style: solid;
+    border-width: 2px;
+    border-radius: 10px;
+    border-color: $gray-300;
+    margin-bottom: 15px;
+    margin-top: 15px;
+
+}
+
+button.inline-delete-button {
+ 
+    margin-top: 32px;
+}

@@ -4,10 +4,10 @@ import { ManagedStateComponentProps } from "../util/StateManagement";
 import { Form, Row } from "reactstrap";
 import { StaticTextInputProps, TextInput } from "./TextInput";
 import { SelectInput } from "./SelectInput";
-import { Race } from "../model/Race";
+import { RACES } from "../model/Races";
 import { DisplayValueExtractor, ValueExtractor } from "../util/ValueExtractor";
-import { GuardianRelationship } from "../model/GuardianRelationship";
-import { Ethnicity } from "../model/Ethnicity";
+import { GUARDIAN_RELATIONSHIPS } from "../model/GuardianRelationships";
+import { ETHNICITIES } from "../model/Ethnicities";
 
 export const PatientForm = (props: ManagedStateComponentProps<Patient>): JSX.Element => {
 
@@ -22,7 +22,7 @@ export const PatientForm = (props: ManagedStateComponentProps<Patient>): JSX.Ele
     return (
     
         <div>
-            <Form>
+            <Form className="rounded-form">
                 <Row form>
                     <TextInput {...staticInputProps} id="mrn" label="Medical Record Number (MRN)" />
                     <TextInput {...staticInputProps} id="mrnAuthority" label="MRN Assigning Authority" />
@@ -47,14 +47,14 @@ export const PatientForm = (props: ManagedStateComponentProps<Patient>): JSX.Ele
                 <Row form>
                     <SelectInput id="race" 
                                  label="Race"
-                                 sourceList={Object.values(Race)}
+                                 sourceList={RACES}
                                  valueExtractor={ValueExtractor.STRING_IDENTITY}
                                  displayValueExtractor={DisplayValueExtractor.STRING_IDENTITY}
                                  onChange={onChange}
                                  value={model.race} />
                     <SelectInput id="ethnicity" 
                                  label="Ethnicity"
-                                 sourceList={Object.values(Ethnicity)}
+                                 sourceList={ETHNICITIES}
                                  valueExtractor={ValueExtractor.STRING_IDENTITY}
                                  displayValueExtractor={DisplayValueExtractor.STRING_IDENTITY}
                                  onChange={onChange}
@@ -83,7 +83,7 @@ export const PatientForm = (props: ManagedStateComponentProps<Patient>): JSX.Ele
                 <Row form>
                     <SelectInput id="guardianRelationship" 
                                  label="Guardian Relationship"
-                                 sourceList={Object.values(GuardianRelationship)}
+                                 sourceList={GUARDIAN_RELATIONSHIPS}
                                  valueExtractor={ValueExtractor.STRING_IDENTITY}
                                  displayValueExtractor={DisplayValueExtractor.STRING_IDENTITY}
                                  onChange={onChange}

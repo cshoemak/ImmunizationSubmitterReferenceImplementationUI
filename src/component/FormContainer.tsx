@@ -27,9 +27,9 @@ interface FormContainerProps<T> {
 
 type FormComponent<T> = React.ComponentType<ManagedStateComponentProps<T>>;
 type RouteProps = RouteComponentProps<{index?: string}>;
-type FormRenderer<T> = (routeProps: RouteProps) => JSX.Element;
+type FormRenderer = (routeProps: RouteProps) => JSX.Element;
 type FormRendererGenerator<T> = 
-    (models: Partial<T>[], saveModel: SaveModel<T>, deleteModel: DeleteModel) => FormRenderer<T>;
+    (models: Partial<T>[], saveModel: SaveModel<T>, deleteModel: DeleteModel) => FormRenderer;
 
 const extractRootPath = (routeProps: RouteProps) =>  routeProps.location.pathname.match(/\/[A-Z-]*/gi)?.shift() || "/";
 const extractActiveIndex = (routeProps: RouteProps) => Number(routeProps.match.params.index);
@@ -54,7 +54,7 @@ const FormContainer = <T, >(props: FormContainerProps<T>): JSX.Element => {
     }
 
     const itemDisplay = displayValueExtractor(model, activeIndex);
-    const deleteEnabled = activeIndex != models.length;
+    const deleteEnabled = activeIndex !== models.length;
 
     return (
 

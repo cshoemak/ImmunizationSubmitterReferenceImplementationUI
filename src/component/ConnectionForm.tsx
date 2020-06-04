@@ -19,9 +19,12 @@ export const ConnectionForm = (props: ManagedStateComponentProps<Connection>): J
     return (
     
         <div>
-            <Form>
+            <Form className="rounded-form">
                 <Row form>
-                    <TextInput {...staticInputProps} id="friendlyName" label="Friendly Name" />
+                    <TextInput {...staticInputProps} 
+                               id="friendlyName" 
+                               label="Friendly Name" 
+                               helpText="Sets how this connection should appear in UI lists" />
                 </Row>
                 <Row form>
                     <TextInput {...staticInputProps} id="iisUrl" label="IIS URL" />

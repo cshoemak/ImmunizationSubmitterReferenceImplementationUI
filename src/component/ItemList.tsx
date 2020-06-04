@@ -30,7 +30,7 @@ export const ItemList = <T, >(props: ItemListProps<T>): JSX.Element => {
     return (
 
         <div>
-            <p>{props.heading}</p>
+            <h4>{props.heading}</h4>
             <ListGroup>
                 {props.models?.map(createListItem)}
                 <ListGroupItem tag={Link} to={newItemTo} active={newItemActive}>{`New ${props.itemName}`}</ListGroupItem>

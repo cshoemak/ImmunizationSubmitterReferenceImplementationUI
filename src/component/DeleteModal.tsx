@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React from "react";
 import { DeleteModel } from "../util/StateManagement";
-import { Modal, ModalHeader, ModalBody, ModalFooter, Button } from "reactstrap";
+import { ConfirmModal } from "./ConfirmModal";
 
 export interface DeleteModalProps {
 
@@ -24,13 +24,11 @@ export const DeleteModal = (props: DeleteModalProps): JSX.Element | null => {
 
     return ( 
 
-        <Modal isOpen={isOpen} toggle={toggle}>
-            <ModalHeader toggle={toggle}>{`Confirm ${itemName} Deletion`}</ModalHeader>
-            <ModalBody>{`Are you sure you want to delete ${itemDisplay}`}</ModalBody>
-            <ModalFooter>
-                <Button color="primary" onClick={performDelete}>Delete</Button>
-                <Button color="secondary" onClick={toggle}>Cancel</Button>
-            </ModalFooter>
-        </Modal>
+        <ConfirmModal confirmText="Delete"
+                      operation={performDelete}
+                      header={`Confirm ${itemName} Deletion`}
+                      isOpen={isOpen}
+                      message={`Are you sure you want to delete ${itemDisplay}`}
+                      toggle={toggle} />
     );
 }

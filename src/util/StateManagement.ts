@@ -1,4 +1,4 @@
-import { State } from "../model/State";
+import { State, } from "../model/State";
 import { useState, useCallback} from "react";
 import { Patient } from "../model/Patient";
 import { Connection } from "../model/Connection";
@@ -19,6 +19,8 @@ export interface ManagedStateComponentProps<T> {
     saveModel: SaveModel<T>;
 }
 
+
+
 const DEFAULT_STATE: State = {
 
     connections: [],
@@ -26,17 +28,17 @@ const DEFAULT_STATE: State = {
     testResults: [],
 }
 
-const loadState = (): State => {
+export const loadState = <T>(key: string, defaultState: T): T => {
 
-    const rawState = window.localStorage.getItem(CONFIG.stateLocalStorageKey);
+    const rawState = window.localStorage.getItem(key);
 
     try {
 
-        const parsedState = rawState ? JSON.parse(rawState) as Partial<State>: undefined;
-        return parsedState ? {...DEFAULT_STATE, ...parsedState} : DEFAULT_STATE;
+        const parsedState = rawState ? JSON.parse(rawState) as Partial<T>: undefined;
+        return parsedState ? {...defaultState, ...parsedState} : defaultState;
 
     } catch (error) {
-        return DEFAULT_STATE;
+        return defaultState;
     };
 }
 
@@ -53,7 +55,7 @@ export interface ManagedState {
 
 export const useManagedState = (): ManagedState => {
 
-    const [state, setState] = useState<State>(loadState());
+    const [state, setState] = useState<State>(loadState(CONFIG.stateLocalStorageKey, DEFAULT_STATE));
 
     const persistState = (newState: State) => { 
     

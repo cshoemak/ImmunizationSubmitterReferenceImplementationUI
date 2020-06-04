@@ -1,7 +1,6 @@
 import { Connection } from "../model/Connection";
 import { Patient } from "../model/Patient";
 import { TestResult } from "../model/TestResult";
-import { Race } from "../model/Race";
 
 export type DisplayValueExtractorType<T> = (model: T, index: number) => string;
 export type ValueExtractorType<T> = (model: T, index: number) => string;
@@ -15,7 +14,8 @@ export class DisplayValueExtractor {
     patient.nameFirst && patient.nameLast ? `${patient.nameFirst} ${patient.nameLast}` : `Patient ${index}`;
 
     public static readonly TEST_RESULT: DisplayValueExtractorType<Partial<TestResult>> = (testResult, index) => 
-    testResult.testType && testResult.testDate ? `${testResult.testType} (${testResult.testDate})` : `Result ${index}`;
+    testResult.friendlyName || (testResult.testType && testResult.testDate
+        ? `${testResult.testType} (${testResult.testDate})` : `Result ${index}`);
 
     public static readonly STRING_IDENTITY: DisplayValueExtractorType<string> = (value, index) => value;
 }

@@ -1,10 +1,16 @@
-import React, { useState, ChangeEvent } from "react";
+import React, { ChangeEvent, useState } from "react";
 import { Patient } from "../model/Patient";
 import { Connection } from "../model/Connection";
 import { TestResult } from "../model/TestResult";
-import { Form, Row, Input, Col, FormGroup, Label, FormText, FormFeedback, Spinner, Button } from "reactstrap";
-import { DisplayValueExtractor, DisplayValueExtractorType } from "../util/ValueExtractor"
+import { Form, Row, Input, Col, Label, Spinner, Button } from "reactstrap";
+import { DisplayValueExtractor } from "../util/ValueExtractor"
 import { SelectInput } from "./SelectInput";
+import { TestResultGrid } from "./TestResultGrid";
+import { Client} from "../util/Client";
+import { useManagedMessageFormState } from "../util/MessageFormStateManagement";
+
+export type ErrorTarget = "connection" | "patient" | "requestMessage"
+export type Errors = {[K in ErrorTarget]: string};
 
 export interface MessageFormProps {
 
@@ -13,136 +19,253 @@ export interface MessageFormProps {
     testResults: Partial<TestResult>[];
 }
 
-interface MessageFormState {
+interface FormState {
 
+    client: Client;
+    errors: Partial<Errors>;
     generatingMessage: boolean;
-    serverRequestMessage?: string;
-    requestMessage?: string;
-    selectedConnection?: string;
-    selectedPatient?: string;
-    selectedTestResult?: string;
+    sendingMessage: boolean;
 }
 
-const isConnectionValid = (connection: Partial<Connection>): boolean => {
+const isConnectionValid = (connection: Partial<Connection>): boolean => 
+    !!(connection.facility && connection.iisUrl && connection.userId && connection.password );
 
-    return !!(connection.facility && connection.iisUrl && connection.password && connection.userId);
-}
 
 export const MessageForm = (props: MessageFormProps): JSX.Element => {
 
-    const { connections, patients, testResults } = props;
-    const [state, setState] = useState<MessageFormState>({ serverRequestMessage: "Mary had a little lamb", requestMessage: "Mary had a little lamb", generatingMessage: false });
+    const [ formState, setFormState ] = useState<FormState>({ client: new Client(), errors: {},
+        generatingMessage: false, sendingMessage: false});
 
-    const connectionInvalid = !!state.selectedConnection 
-        && !isConnectionValid(connections[Number(state.selectedConnection)]);
-    const connectionInvalidText = connectionInvalid ? "This connection is missing some information" : undefined;
-    const revertEditsDisabled = state.requestMessage === state.serverRequestMessage;
+    const { state, saveTestResult, deleteTestResult, clearTestResults, updateSelectedConnection,
+         updateSelectedPatient, updateRequestMessage } = useManagedMessageFormState()
 
-    const connectionSelectClass = state.selectedConnection ? "font-weight-normal" : "font-weight-lighter";
-    const patientSelectClass = state.selectedPatient ? "font-weight-normal" : "font-weight-lighter";
-    const testResultSelectClass = state.selectedTestResult ? "font-weight-normal" : "font-weight-lighter";
+    const getConnection = (index: string | number | undefined) => {
+
+        return props.connections[Number(index)];
+    }
+
+    const getPatient = (index: string | number | undefined) => {
+
+        return props.patients[Number(index)];
+    }
+
+    const setErrorForTarget = (target: ErrorTarget, message: string | undefined): void => {
+
+        const errors = { ...formState.errors };
+        errors[target] = message;
+        setFormState({ ...formState, errors });
+    };
+
+    const clearErrorForTarget = (target: ErrorTarget): void => {
+
+        setErrorForTarget(target, undefined);
+    };
+
+    const hasErrorForTarget = (target: ErrorTarget): boolean => {
+
+        return !formState.errors || !!formState.errors[target];
+    };
+
+    const getErrorForTarget = (target: ErrorTarget): string | undefined => {
+
+        return formState.errors ? formState.errors[target] : undefined;
+    };
+
+    const setGeneratingMessage = (value: boolean) => {
+
+        setFormState({ ...formState, generatingMessage: value});
+    };
+
+    const setSendingMessage = (value: boolean) => {
+
+        setFormState({ ...formState, sendingMessage: value});
+    };
+
+    const checkIfConnectionPresent = (): boolean =>  {
+
+        if (!state.selectedConnection) {
+            setErrorForTarget("connection", "A connection is required to generate a message");
+            return false;
+        } else {
+            clearErrorForTarget("connection");
+            return true;
+        }
+    }
+
+    const checkIfConnectionValid = (index: string | number | undefined): boolean =>  {
+
+        if (!isConnectionValid(getConnection(index))) {
+            setErrorForTarget("connection", "This connection is missing required fields");
+            return false;
+        } else {
+            clearErrorForTarget("connection");
+            return true;
+        }
+    }
+
+    const checkIfPatientPresent = (): boolean =>  {
+
+        if (!state.selectedPatient) {
+            setErrorForTarget("patient", "A patient is required to generate a message");
+            return false;
+        } else {
+            clearErrorForTarget("patient");
+            return true;
+        }
+    }
 
     const onConnectionChange = (event: ChangeEvent<HTMLInputElement>) => {
 
-        setState({ ...state, selectedConnection: event.target.value });
+        updateSelectedConnection(event.target.value);
+        checkIfConnectionValid(event.target.value);
     };
 
     const onPatientChange = (event: ChangeEvent<HTMLInputElement>) => {
     
-        setState({ ...state, selectedPatient: event.target.value });
-    };
-
-    const onTestResultChange = (event: ChangeEvent<HTMLInputElement>) => {
-    
-        setState({ ...state, selectedTestResult: event.target.value });
+        updateSelectedPatient(event.target.value);
+        clearErrorForTarget("patient");
     };
 
     const onRequestChange = (event: ChangeEvent<HTMLInputElement>) => {
     
-        setState({ ...state, requestMessage: event.target.value });
+        updateRequestMessage(event.target.value);
     };
 
-    const onRevertClick = () => {
+    const onGenerateResultReceived = (result: string|Error) => {
 
-        setState({ ...state, requestMessage: state.serverRequestMessage })
+        setGeneratingMessage(false);
+
+        if (result instanceof Error) {
+
+            throw Error;
+        }
+
+        updateRequestMessage(result);
     };
 
-    const onSendClick = () => {
+    const onGenerateClick = () => {
 
+        if (checkIfConnectionPresent() 
+            && checkIfConnectionValid(state.selectedConnection)
+            && checkIfPatientPresent()) {
+
+            const connection = getConnection(state.selectedConnection);
+            const patient = getPatient(state.selectedPatient);
+
+            formState.client.generateHl7(connection, patient, state.testResults)
+                .then(onGenerateResultReceived); 
+                
+            setGeneratingMessage(true);
+        }
     };
 
-    const allSelectedAndValid = state.selectedConnection && !connectionInvalid && state.selectedPatient
-        && state.selectedTestResult;
+    const onSendMessageClick = () => {
+        
+        setSendingMessage(true);
+    };
 
     return (
 
         <div>
-            <Form>
+            <Form className="rounded-form">
+            <h4>Generate a Message</h4>
                 <Row form>
                     <SelectInput id="connectionSelect" 
                                  label="IIS Connection"
-                                 invalid={connectionInvalid} 
+                                 invalid={hasErrorForTarget("connection")} 
                                  value={state.selectedConnection}
                                  onChange={onConnectionChange} 
                                  helpText="Select the connection information of the IIS you wish to target"
-                                 feedback={connectionInvalidText}
+                                 feedback={getErrorForTarget("connection")}
                                  sourceList={props.connections}
                                  displayValueExtractor={DisplayValueExtractor.CONNECTION} />
                 </Row>
-                {state.selectedConnection && !connectionInvalid &&
-                    <Row form>
-                        <SelectInput id="patientSelect" 
-                                     label="Patient"
-                                     value={state.selectedPatient}
-                                     onChange={onPatientChange} 
-                                     helpText="Select the patient for which you wish to send a message"
-                                     sourceList={props.patients}
-                                     displayValueExtractor={DisplayValueExtractor.PATIENT} />
-                    </Row>
-                }
-                {state.selectedConnection && !connectionInvalid && state.selectedPatient &&
-                    <Row form>
-                        <SelectInput id="testResultSelect" 
-                                     label="Test Result"
-                                     value={state.selectedTestResult}
-                                     onChange={onTestResultChange} 
-                                     helpText="Select the test result you wish to send"
-                                     sourceList={props.testResults}
-                                     displayValueExtractor={DisplayValueExtractor.TEST_RESULT} />
-                    </Row>
-                }
-                { allSelectedAndValid && state.generatingMessage &&
-
+                <Row form>
+                    <SelectInput id="patientSelect" 
+                                    label="Patient"
+                                    invalid={hasErrorForTarget("patient")} 
+                                    value={state.selectedPatient}
+                                    onChange={onPatientChange} 
+                                    helpText="Select the patient for which you wish to generate a message"
+                                    feedback={getErrorForTarget("patient")}
+                                    sourceList={props.patients}
+                                    displayValueExtractor={DisplayValueExtractor.PATIENT} />
+                </Row>
+                <h5>Test Results</h5>
+                <TestResultGrid saveTestResult={saveTestResult}
+                                deleteTestResult={deleteTestResult}
+                                clearTestResults={clearTestResults}
+                                testResults={state.testResults}
+                                savedTestResults={props.testResults} />
+            </Form>
+            <Form>
+                <Row form>
+                    <Col sm={{ size: 2, offset: 10 }}>
+                        <Button className="float-right" 
+                                color="primary"
+                                onClick={onGenerateClick}>
+                            Generate Message
+                        </Button>
+                    </Col>
+                </Row>   
+            </Form>
+            <Form className="rounded-form">
+                <h4>Send a Message</h4>
+                { formState.generatingMessage &&
                     <Row form>
                         <Col md={4}>
-                            <span className="generating-message">Generating Message</span>
+                            <span className="spinner-message">Generating Message</span>
                             <Spinner id="generatingMessageSpinner" size="sm" color="primary" />
                         </Col>
                     </Row>
                 }
-                 { allSelectedAndValid && state.requestMessage &&
-
-                    <div>
-                        <Row form>
-                            <Col md={12}>
-                                <Label for="requestMessageArea">HL7 Request</Label>
-                                <Input type="textarea" 
-                                       id="requestMessageArea" 
-                                       value={state.requestMessage}
-                                       onChange={onRequestChange} />
-                            </Col>
-                        </Row>
-                        <Row form className="hl7-request-buttons">
-                            <Col md={4}>
-                                <Button color="primary" onClick={onRevertClick} disabled={revertEditsDisabled}>
-                                    Revert Edits
-                                </Button>
-                                <Button color="primary" onClick={onSendClick}>Send</Button>
-                            </Col>
-                        </Row>
-                    </div>
+                { !formState.generatingMessage &&
+                    <Row form>
+                        <Col md={12}>
+                            <Label for="requestMessageArea">HL7 Request</Label>
+                            <Input type="textarea" 
+                                    id="requestMessageArea" 
+                                    value={state.requestMessage}
+                                    onChange={onRequestChange} />
+                        </Col>
+                    </Row>
                 }
             </Form>
+            <Form>
+                <Row form>
+                    <Col sm={{ size: 2, offset: 10 }}>
+                        <Button className="float-right" 
+                                color="primary"
+                                onClick={onSendMessageClick}>
+                            Send Message
+                        </Button>
+                    </Col>
+                </Row>   
+            </Form>
+            { (state.responseMessage || formState.sendingMessage) &&
+                <Form className="rounded-form">
+                    <h4>View Response Message</h4>
+                    { formState.sendingMessage &&
+                        <Row form>
+                            <Col md={4}>
+                                <span className="spinner-message">Sending Message</span>
+                                <Spinner id="generatingMessageSpinner" size="sm" color="primary" />
+                            </Col>
+                        </Row>
+                    }
+                    { !formState.sendingMessage && 
+                        <Row form>
+                            <Col md={12}>
+                                <Label for="requestMessageArea">HL7 Response</Label>
+                                <Input type="textarea" 
+                                        id="requestMessageArea" 
+                                        value={state.responseMessage}
+                                        onChange={onRequestChange} />
+                            </Col>
+                        </Row>
+                    }
+                </Form>
+            }
         </div>
     );
 };
