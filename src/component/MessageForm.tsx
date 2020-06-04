@@ -2,7 +2,7 @@ import React, { ChangeEvent, useState } from "react";
 import { Patient } from "../model/Patient";
 import { Connection } from "../model/Connection";
 import { TestResult } from "../model/TestResult";
-import { Form, Row, Input, Col, Label, Spinner, Button } from "reactstrap";
+import { Form, Row, Input, Col, Label, Spinner, Button, FormGroup, FormFeedback } from "reactstrap";
 import { DisplayValueExtractor } from "../util/ValueExtractor"
 import { SelectInput } from "./SelectInput";
 import { Client} from "../util/Client";
@@ -10,7 +10,7 @@ import { useManagedMessageFormState } from "../util/MessageFormStateManagement";
 import { InlineTestResult } from "./InlineTestResult";
 import { ItemSelectorModal } from "./ItemSelectorModal";
 
-export type ErrorTarget = "connection" | "patient" | "requestMessage"
+export type ErrorTarget = "connection" | "patient" | "requestMessage" | "responseMessage"
 export type Errors = {[K in ErrorTarget]: string};
 
 export interface MessageFormProps {
@@ -38,8 +38,8 @@ export const MessageForm = (props: MessageFormProps): JSX.Element => {
     const [ formState, setFormState ] = useState<FormState>({ client: new Client(), errors: {},
         generatingMessage: false, sendingMessage: false, selectModalOpen: false });
 
-    const { state, saveTestResult, updateSelectedConnection, updateSelectedPatient, updateRequestMessage }
-        = useManagedMessageFormState()
+    const { state, saveTestResult, updateSelectedConnection, updateSelectedPatient, updateRequestMessage,
+        updateResponseMessage } = useManagedMessageFormState()
 
     const getConnection = (index: string | number | undefined) => {
 
@@ -126,6 +126,17 @@ export const MessageForm = (props: MessageFormProps): JSX.Element => {
         }
     }
 
+    const checkIfRequestMessagePresent = (): boolean =>  {
+
+        if (!state.requestMessage) {
+            setErrorForTarget("requestMessage", "A request message is required for sending");
+            return false;
+        } else {
+            clearErrorForTarget("requestMessage");
+            return true;
+        }
+    }
+
     const onConnectionChange = (event: ChangeEvent<HTMLInputElement>) => {
 
         updateSelectedConnection(event.target.value);
@@ -141,6 +152,7 @@ export const MessageForm = (props: MessageFormProps): JSX.Element => {
     const onRequestChange = (event: ChangeEvent<HTMLInputElement>) => {
     
         updateRequestMessage(event.target.value);
+        clearErrorForTarget("requestMessage");
     };
 
     const onGenerateResultReceived = (result: string|Error) => {
@@ -149,7 +161,8 @@ export const MessageForm = (props: MessageFormProps): JSX.Element => {
 
         if (result instanceof Error) {
 
-            throw Error;
+            setErrorForTarget("requestMessage", result.message);
+            return;
         }
 
         updateRequestMessage(result);
@@ -171,9 +184,35 @@ export const MessageForm = (props: MessageFormProps): JSX.Element => {
         }
     };
 
+    const onSendResultReceived = (result: string|Error) => {
+
+        setSendingMessage(false);
+
+        if (result instanceof Error) {
+
+            updateResponseMessage("");
+            setErrorForTarget("responseMessage", result.message);
+            return;
+        }
+
+        updateResponseMessage(result);
+    }
+
     const onSendMessageClick = () => {
         
-        setSendingMessage(true);
+        clearErrorForTarget("responseMessage");
+
+        if (checkIfConnectionPresent() 
+            && checkIfConnectionValid(state.selectedConnection)
+            && checkIfRequestMessagePresent()) {
+     
+                const connection = getConnection(state.selectedConnection);
+
+                formState.client.postHl7(connection, state.requestMessage!)
+                    .then(onSendResultReceived);
+
+                setSendingMessage(true);
+        }
     };
 
     return (
@@ -249,11 +288,19 @@ export const MessageForm = (props: MessageFormProps): JSX.Element => {
                 { !formState.generatingMessage &&
                     <Row form>
                         <Col md={12}>
-                            <Label for="requestMessageArea">HL7 Request</Label>
-                            <Input type="textarea" 
+                            <FormGroup>
+                                <Label for="requestMessageArea">HL7 Request</Label>
+                                <Input type="textarea" 
                                     id="requestMessageArea" 
+                                    invalid={hasErrorForTarget("requestMessage")} 
+                                    className="hl7-message"
                                     value={state.requestMessage}
+                                    feedback={getErrorForTarget("requestMessage")}
                                     onChange={onRequestChange} />
+                                { hasErrorForTarget("requestMessage") && 
+                                    <FormFeedback>{getErrorForTarget("requestMessage")}</FormFeedback>
+                                }
+                            </FormGroup>
                         </Col>
                     </Row>
                 }
@@ -269,30 +316,35 @@ export const MessageForm = (props: MessageFormProps): JSX.Element => {
                     </Col>
                 </Row>   
             </Form>
-            { (state.responseMessage || formState.sendingMessage) &&
-                <Form className="rounded-form">
-                    <h4>View Response Message</h4>
-                    { formState.sendingMessage &&
-                        <Row form>
-                            <Col md={4}>
-                                <span className="spinner-message">Sending Message</span>
-                                <Spinner id="generatingMessageSpinner" size="sm" color="primary" />
-                            </Col>
-                        </Row>
-                    }
-                    { !formState.sendingMessage && 
-                        <Row form>
-                            <Col md={12}>
-                                <Label for="requestMessageArea">HL7 Response</Label>
-                                <Input type="textarea" 
-                                        id="requestMessageArea" 
-                                        value={state.responseMessage}
-                                        onChange={onRequestChange} />
-                            </Col>
-                        </Row>
-                    }
-                </Form>
-            }
+            <Form className="rounded-form">
+                <h4>View Response Message</h4>
+                { formState.sendingMessage &&
+                    <Row form>
+                        <Col md={4}>
+                            <span className="spinner-message">Sending Message</span>
+                            <Spinner id="generatingMessageSpinner" size="sm" color="primary" />
+                        </Col>
+                    </Row>
+                }
+                { !formState.sendingMessage && 
+                    <Row form>
+                        <Col md={12}>
+                            <FormGroup>
+                                <Label for="responseMessageArea">HL7 Response</Label>
+                                <Input readOnly
+                                       type="textarea" 
+                                       id="responseMessageArea" 
+                                       invalid={hasErrorForTarget("responseMessage")}
+                                       className="hl7-message"
+                                       value={state.responseMessage} />
+                                { hasErrorForTarget("responseMessage") && 
+                                    <FormFeedback>{getErrorForTarget("responseMessage")}</FormFeedback>
+                                }
+                            </FormGroup>
+                        </Col>
+                    </Row>
+                }
+            </Form>
         </div>
     );
 };
