@@ -6,5 +6,5 @@ export interface MessageFormState {
     responseMessage?: string;
     selectedConnection?: string;
     selectedPatient?: string;
-    testResults: Partial<TestResult>[];
+    testResult: Partial<TestResult>;
 }

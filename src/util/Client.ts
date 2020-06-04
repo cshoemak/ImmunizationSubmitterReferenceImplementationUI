@@ -18,7 +18,7 @@ interface GenerateHl7Request {
 
     connectionInfo: Partial<Connection>;
     patientDetails: Partial<Patient>;
-    covid19TestingResults: Partial<TestResult>[];
+    covid19TestingResults: Partial<TestResult>;
 }
 
 interface PostHl7Request {
@@ -29,9 +29,7 @@ interface PostHl7Request {
 
 interface Response {
 
-    statusCode: number;
-    body: string;
-    headers: {[K: string]: string};
+    hl7Message: string;
 }
 
 /**
@@ -75,17 +73,17 @@ export class Client {
      */
     public readonly generateHl7 = (connection: Partial<Connection>,
                                    patient: Partial<Patient>,
-                                   testResults: Partial<TestResult>[]): Promise<string | Error> => {
+                                   testResult: Partial<TestResult>): Promise<string | Error> => {
 
         const request: GenerateHl7Request = {
 
             connectionInfo: makeConnectionPlain(connection),
             patientDetails: patient,
-            covid19TestingResults: testResults,
+            covid19TestingResults: testResult,
         };
 
         return this.axiosClient.post<Response>("/generateHL7", request)
-            .then(x => x.data.body)
+            .then(x => x.data.hl7Message)
             .catch(createErrorHandler("generateHl7"))
     }
 
@@ -105,7 +103,7 @@ export class Client {
         };
 
         return this.axiosClient.post<Response>("/postHL7", request)
-            .then(x => x.data.body)
+            .then(x => x.data.hl7Message)
             .catch(createErrorHandler("postHl7"))
     }
 }

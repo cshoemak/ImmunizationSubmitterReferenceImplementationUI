@@ -2,21 +2,20 @@ import { useState, useCallback} from "react";
 import { debounce } from "lodash";
 import { CONFIG } from "./Config";
 import { MessageFormState } from "../model/MessageFormState";
-import { SaveTestResult, DeleteModel, loadState } from "./StateManagement";
+import { loadState } from "./StateManagement";
+import { TestResult } from "../model/TestResult";
 
 type Consumer<T> = (value: T) => void;
 
 const DEFAULT_MESSAGE_FORM_STATE: MessageFormState = {
 
-    testResults: [{}]
+    testResult: {}
 };
 
 export interface ManagedMessageFormState {
 
     state: MessageFormState;
-    saveTestResult: SaveTestResult;
-    deleteTestResult: DeleteModel;
-    clearTestResults: () => void;
+    saveTestResult: Consumer<Partial<TestResult>>;
     updateSelectedConnection: Consumer<string>;
     updateSelectedPatient: Consumer<string>;   
     updateRequestMessage: Consumer<string>;
@@ -41,24 +40,10 @@ export const useManagedMessageFormState = (): ManagedMessageFormState => {
         debouncedPeristState(newState);        
     };
 
-    const saveTestResult: SaveTestResult = (index, testResult) => {
+    const saveTestResult = (testResult: Partial<TestResult>) => {
 
-        const testResults = [...state.testResults];
-        testResults[index] = testResult;
-        saveState({ ...state, testResults });
+        saveState({ ...state, testResult });
     }
-
-    const deleteTestResult: DeleteModel = (index) => {
-
-        const testResults = [...state.testResults];
-        testResults.splice(index, 1);
-        saveState({ ...state, testResults });
-    }
-
-    const clearTestResults = () => {
-
-        saveState({ ...state, testResults: [{}] });
-    };
 
     const updateSelectedConnection: Consumer<string> = (selection) => {
 
@@ -80,6 +65,5 @@ export const useManagedMessageFormState = (): ManagedMessageFormState => {
         saveState({ ...state, responseMessage: message });
     }
 
-    return { state, saveTestResult, deleteTestResult, clearTestResults, updateSelectedConnection, 
-        updateSelectedPatient, updateRequestMessage, updateResponseMessage };
+    return { state, saveTestResult, updateSelectedConnection, updateSelectedPatient, updateRequestMessage, updateResponseMessage };
 }

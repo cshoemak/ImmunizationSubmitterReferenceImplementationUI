@@ -5,9 +5,10 @@ import { TestResult } from "../model/TestResult";
 import { Form, Row, Input, Col, Label, Spinner, Button } from "reactstrap";
 import { DisplayValueExtractor } from "../util/ValueExtractor"
 import { SelectInput } from "./SelectInput";
-import { TestResultGrid } from "./TestResultGrid";
 import { Client} from "../util/Client";
 import { useManagedMessageFormState } from "../util/MessageFormStateManagement";
+import { InlineTestResult } from "./InlineTestResult";
+import { ItemSelectorModal } from "./ItemSelectorModal";
 
 export type ErrorTarget = "connection" | "patient" | "requestMessage"
 export type Errors = {[K in ErrorTarget]: string};
@@ -24,6 +25,7 @@ interface FormState {
     client: Client;
     errors: Partial<Errors>;
     generatingMessage: boolean;
+    selectModalOpen: boolean;
     sendingMessage: boolean;
 }
 
@@ -34,10 +36,10 @@ const isConnectionValid = (connection: Partial<Connection>): boolean =>
 export const MessageForm = (props: MessageFormProps): JSX.Element => {
 
     const [ formState, setFormState ] = useState<FormState>({ client: new Client(), errors: {},
-        generatingMessage: false, sendingMessage: false});
+        generatingMessage: false, sendingMessage: false, selectModalOpen: false });
 
-    const { state, saveTestResult, deleteTestResult, clearTestResults, updateSelectedConnection,
-         updateSelectedPatient, updateRequestMessage } = useManagedMessageFormState()
+    const { state, saveTestResult, updateSelectedConnection, updateSelectedPatient, updateRequestMessage }
+        = useManagedMessageFormState()
 
     const getConnection = (index: string | number | undefined) => {
 
@@ -80,6 +82,16 @@ export const MessageForm = (props: MessageFormProps): JSX.Element => {
 
         setFormState({ ...formState, sendingMessage: value});
     };
+
+    const toggleSelectModal = () => {
+
+        setFormState({ ...formState, selectModalOpen: !formState.selectModalOpen});
+    }
+
+    const onSelectModalSelect = (index: number) => {
+
+        saveTestResult( props.testResults[index]);
+    }
 
     const checkIfConnectionPresent = (): boolean =>  {
 
@@ -152,7 +164,7 @@ export const MessageForm = (props: MessageFormProps): JSX.Element => {
             const connection = getConnection(state.selectedConnection);
             const patient = getPatient(state.selectedPatient);
 
-            formState.client.generateHl7(connection, patient, state.testResults)
+            formState.client.generateHl7(connection, patient, state.testResult)
                 .then(onGenerateResultReceived); 
                 
             setGeneratingMessage(true);
@@ -167,6 +179,15 @@ export const MessageForm = (props: MessageFormProps): JSX.Element => {
     return (
 
         <div>
+            <ItemSelectorModal displayValueExtractor={DisplayValueExtractor.TEST_RESULT}
+                               isOpen={formState.selectModalOpen}
+                               itemTypeName="Test Result"
+                               items={props.testResults}
+                               message="This will copy the saved test result to the form, allowing you to edit it
+                                        without affecting the saved result"
+                               onSelect={onSelectModalSelect}
+                               onToggle={toggleSelectModal} />
+
             <Form className="rounded-form">
             <h4>Generate a Message</h4>
                 <Row form>
@@ -191,12 +212,18 @@ export const MessageForm = (props: MessageFormProps): JSX.Element => {
                                     sourceList={props.patients}
                                     displayValueExtractor={DisplayValueExtractor.PATIENT} />
                 </Row>
-                <h5>Test Results</h5>
-                <TestResultGrid saveTestResult={saveTestResult}
-                                deleteTestResult={deleteTestResult}
-                                clearTestResults={clearTestResults}
-                                testResults={state.testResults}
-                                savedTestResults={props.testResults} />
+                <h5>Test Result</h5>
+                <InlineTestResult deleteEnabled={false}
+                                  deleteTestResult={() => {}}
+                                  index={0}
+                                  testResult={state.testResult}
+                                  saveTestResult={(index, item) => saveTestResult(item)} />
+                <Row form>
+                    <Col md={2}>
+                        <Button id="copyFromSaved" color="primary" onClick={toggleSelectModal}>Copy From Saved</Button>
+                    </Col>
+                </Row>
+
             </Form>
             <Form>
                 <Row form>

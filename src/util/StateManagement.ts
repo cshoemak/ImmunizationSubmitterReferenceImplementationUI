@@ -19,8 +19,6 @@ export interface ManagedStateComponentProps<T> {
     saveModel: SaveModel<T>;
 }
 
-
-
 const DEFAULT_STATE: State = {
 
     connections: [],
