@@ -5,6 +5,7 @@ import { Patient } from "../model/Patient";
 import { TestResult } from "../model/TestResult";
 
 type ErrorHandler = (error: AxiosError) => string;
+type PlainConnection = Omit<Connection, "friendlyName">;
 
 const CLIENT_CONFIG: AxiosRequestConfig = {
 
@@ -33,11 +34,29 @@ interface Response {
     headers: {[K: string]: string};
 }
 
+/**
+ * Creates a handler that can convert an {@link AxiosError} into a simple string error.
+ * 
+ * @param operation The client operation, for context.
+ */
 const createErrorHandler = (operation: string): ErrorHandler => {
 
-    return (axiosError) => `${axiosError.code} - Error calling "${operation}": ${axiosError.message}`;
+    return (axiosError) => `Error calling "${operation}": ${axiosError.message}`;
 }
 
+/**
+ * Removes {@code friendlyName} from the connection, leaving on the fields the ISRI back-end expects.
+ */
+const makeConnectionPlain = (connection: Partial<Connection>): Partial<PlainConnection> => {
+
+    const { facility, iisUrl, userId, password } = connection;
+
+    return { facility, iisUrl, userId, password }
+} ;
+
+/**
+ * An ISRI Axios client for HL7 message generation and transmission.
+ */
 export class Client {
 
     private readonly axiosClient: AxiosInstance;
@@ -47,11 +66,20 @@ export class Client {
         this.axiosClient = axiosClient || axios.create(CLIENT_CONFIG);
     }
 
-    public readonly generateHl7 = (connection: Partial<Connection>, patient: Partial<Patient>, testResults: Partial<TestResult>[]): Promise<string | Error> => {
+    /**
+     * Calls the ISRI back-end to generate an HL7 message from the given connection, patient, and test result
+     * data.
+     * 
+     * @returns A promise that resolves to either an HL7 message string representing a request message or an 
+     *          {@link Error} if the call fails.
+     */
+    public readonly generateHl7 = (connection: Partial<Connection>,
+                                   patient: Partial<Patient>,
+                                   testResults: Partial<TestResult>[]): Promise<string | Error> => {
 
         const request: GenerateHl7Request = {
 
-            connectionInfo: connection,
+            connectionInfo: makeConnectionPlain(connection),
             patientDetails: patient,
             covid19TestingResults: testResults,
         };
@@ -61,11 +89,18 @@ export class Client {
             .catch(createErrorHandler("generateHl7"))
     }
 
-    public readonly postHl7 = (connection: Partial<Connection>, hl7Message: string): string | Promise<string | Error> => {
+    /**
+     * Calls the ISRI back-end to send the given HL7 message to the destination defined in the given connection info.
+     * 
+     * @returns A promise that resolves to either an HL7 message string representing a response messag or an 
+     *          {@link Error} if the call fails.
+     */
+    public readonly postHl7 = (connection: Partial<Connection>, 
+                               hl7Message: string): string | Promise<string | Error> => {
 
         const request: PostHl7Request = {
 
-            connectionInfo: connection,
+            connectionInfo: makeConnectionPlain(connection),
             hl7Payload: hl7Message,
         };
 
