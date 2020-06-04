@@ -6,6 +6,7 @@ import { TestResult } from "../model/TestResult";
 
 type ErrorHandler = (error: AxiosError) => string;
 type PlainConnection = Omit<Connection, "friendlyName">;
+type PlainTestResult = Omit<TestResult, "friendlyName">;
 
 const CLIENT_CONFIG: AxiosRequestConfig = {
 
@@ -53,6 +54,16 @@ const makeConnectionPlain = (connection: Partial<Connection>): Partial<PlainConn
 } ;
 
 /**
+ * Removes {@code friendlyName} from the test result, leaving on the fields the ISRI back-end expects.
+ */
+const makeTestResultPlain = (result: Partial<TestResult>): Partial<PlainTestResult> => {
+
+    const { testDate, testType, testResult } = result;
+
+    return { testDate, testType, testResult };
+}
+
+/**
  * An ISRI Axios client for HL7 message generation and transmission.
  */
 export class Client {
@@ -79,7 +90,7 @@ export class Client {
 
             connectionInfo: makeConnectionPlain(connection),
             patientDetails: patient,
-            covid19TestingResults: testResult,
+            covid19TestingResults: makeTestResultPlain(testResult),
         };
 
         return this.axiosClient.post<Response>("/generateHL7", request)
