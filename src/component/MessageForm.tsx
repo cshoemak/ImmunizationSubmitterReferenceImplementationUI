@@ -10,8 +10,9 @@ import { useManagedMessageFormState } from "../util/MessageFormStateManagement";
 import { InlineTestResult } from "./InlineTestResult";
 import { ItemSelectorModal } from "./ItemSelectorModal";
 
-export type ErrorTarget = "connection" | "patient" | "requestMessage" | "responseMessage"
-export type Errors = {[K in ErrorTarget]: string};
+type ErrorTarget = "connection" | "patient" | "requestMessage" | "responseMessage"
+type Errors = {[K in ErrorTarget]: string};
+type FormStateUpdater = (previousState: FormState) => FormState;
 
 export interface MessageFormProps {
 
@@ -53,9 +54,14 @@ export const MessageForm = (props: MessageFormProps): JSX.Element => {
 
     const setErrorForTarget = (target: ErrorTarget, message: string | undefined): void => {
 
-        const errors = { ...formState.errors };
-        errors[target] = message;
-        setFormState({ ...formState, errors });
+        const updater: FormStateUpdater = (prevState) => {
+
+            const errors = { ...prevState.errors };
+            errors[target] = message;
+            return { ...prevState, errors }
+        }
+
+        setFormState(updater);
     };
 
     const clearErrorForTarget = (target: ErrorTarget): void => {
@@ -75,12 +81,12 @@ export const MessageForm = (props: MessageFormProps): JSX.Element => {
 
     const setGeneratingMessage = (value: boolean) => {
 
-        setFormState({ ...formState, generatingMessage: value});
+        setFormState((prevState) => { return { ...prevState, generatingMessage: value} });
     };
 
     const setSendingMessage = (value: boolean) => {
 
-        setFormState({ ...formState, sendingMessage: value});
+        setFormState((prevState) => { return { ...prevState, sendingMessage: value} });
     };
 
     const toggleSelectModal = () => {
